@@ -251,6 +251,9 @@
       "apiVersion": "2022-03-01",
       "name": "[parameters('vmName')]",
       "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
       "properties": {
         "hardwareProfile": {
           "vmSize": "Standard_B4ms"
@@ -262,12 +265,11 @@
         },
         "storageProfile": {
           "imageReference": {
-            "publisher": "microsoftvisualstudio",
+              "publisher": "microsoftvisualstudio",
               "offer": "visualstudio2019latest",
               "sku": "vs-2019-ent-latest-win10-n",
               "version": "latest"
-          }
-        },
+          },
           "osDisk": {
             "createOption": "FromImage",
             "managedDisk": {
