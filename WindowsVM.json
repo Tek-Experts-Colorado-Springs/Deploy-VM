@@ -261,12 +261,12 @@
           "adminPassword": "[parameters('adminPassword')]"
         },
         "storageProfile": {
-            "imageReference": {
-                "publisher": "microsoftvisualstudio",
-                "offer": "visualstudio2019latest",
-                "sku": "vs-2019-ent-latest-win10-n",
-                "version": "latest"
-            },
+          "imageReference": {
+            "publisher": "microsoftvisualstudio",
+              "offer": "visualstudio2019latest",
+              "sku": "vs-2019-ent-latest-win10-n",
+              "version": "latest"
+          }
         },
           "osDisk": {
             "createOption": "FromImage",
