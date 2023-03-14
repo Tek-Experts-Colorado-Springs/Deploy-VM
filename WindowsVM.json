@@ -1,0 +1,62 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "variables": {
+      "hostingPlanName": "[replace(resourceGroup().name,'.','')]",
+      "siteName": "[concat(toLower(variables('hostingPlanName')), uniqueString(resourceGroup().id))]",
+      "sku": "B3",
+      "repoURL": "https://github.com/azureossd/nodejs-windows-1.git",
+      "branch": "main"
+    },
+    "resources": [
+      {
+        "apiVersion": "2020-06-01",
+        "name": "[variables('hostingPlanName')]",
+        "type": "Microsoft.Web/serverfarms",
+        "location": "[resourceGroup().location]",
+        "sku": {
+          "name": "[variables('sku')]"
+        }
+      },
+      {
+        "apiVersion": "2020-06-01",
+        "name": "[variables('siteName')]",
+        "type": "Microsoft.Web/sites",
+        "location": "[resourceGroup().location]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
+        ],
+        "properties": {
+          "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                            "value": "~12"
+                        }
+                    ],
+                    "metadata": [
+                        {
+                            "name": "CURRENT_STACK",
+                            "value": "node"
+                        }
+                    ]},
+          "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
+        },
+        "resources": [
+          {
+            "apiVersion": "2020-06-01",
+            "name": "web",
+            "type": "sourcecontrols",
+            "dependsOn": [
+              "[resourceId('Microsoft.Web/Sites', variables('siteName'))]"
+            ],
+            "properties": {
+              "repoUrl": "[variables('repoURL')]",
+              "branch": "[variables('branch')]",
+              "IsManualIntegration": true
+            }
+          }
+        ]
+      }
+    ]
+  }
