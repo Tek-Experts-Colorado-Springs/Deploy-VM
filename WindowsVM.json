@@ -1,62 +1,122 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "variables": {
-      "hostingPlanName": "[replace(resourceGroup().name,'.','')]",
-      "siteName": "[concat(toLower(variables('hostingPlanName')), uniqueString(resourceGroup().id))]",
-      "sku": "B3",
-      "repoURL": "https://github.com/azureossd/nodejs-windows-1.git",
-      "branch": "main"
-    },
-    "resources": [
-      {
-        "apiVersion": "2020-06-01",
-        "name": "[variables('hostingPlanName')]",
-        "type": "Microsoft.Web/serverfarms",
-        "location": "[resourceGroup().location]",
-        "sku": {
-          "name": "[variables('sku')]"
-        }
-      },
-      {
-        "apiVersion": "2020-06-01",
-        "name": "[variables('siteName')]",
-        "type": "Microsoft.Web/sites",
-        "location": "[resourceGroup().location]",
-        "dependsOn": [
-          "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
-        ],
-        "properties": {
-          "siteConfig": {
-                    "appSettings": [
-                        {
-                            "name": "WEBSITE_NODE_DEFAULT_VERSION",
-                            "value": "~12"
-                        }
-                    ],
-                    "metadata": [
-                        {
-                            "name": "CURRENT_STACK",
-                            "value": "node"
-                        }
-                    ]},
-          "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
+    "parameters": {
+        "virtualMachines_sbristol_vm_name": {
+            "defaultValue": "sbristol-vm",
+            "type": "String"
         },
-        "resources": [
-          {
-            "apiVersion": "2020-06-01",
-            "name": "web",
-            "type": "sourcecontrols",
+        "disks_sbristol_vm_OsDisk_1_70240d1be3a3443eb25aad4f3e924386_externalid": {
+            "defaultValue": "/subscriptions/504215e5-c473-41bd-ad45-ab065b50d098/resourceGroups/SBRISTOL-WIN-RG/providers/Microsoft.Compute/disks/sbristol-vm_OsDisk_1_70240d1be3a3443eb25aad4f3e924386",
+            "type": "String"
+        },
+        "networkInterfaces_sbristol_vm281_externalid": {
+            "defaultValue": "/subscriptions/504215e5-c473-41bd-ad45-ab065b50d098/resourceGroups/sbristol-Win-RG/providers/Microsoft.Network/networkInterfaces/sbristol-vm281",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2022-11-01",
+            "name": "[parameters('virtualMachines_sbristol_vm_name')]",
+            "location": "centralus",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_B4ms"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "microsoftvisualstudio",
+                        "offer": "visualstudio2019latest",
+                        "sku": "vs-2019-ent-latest-win10-n",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Windows",
+                        "name": "[concat(parameters('virtualMachines_sbristol_vm_name'), '_OsDisk_1_70240d1be3a3443eb25aad4f3e924386')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS",
+                            "id": "[parameters('disks_sbristol_vm_OsDisk_1_70240d1be3a3443eb25aad4f3e924386_externalid')]"
+                        },
+                        "deleteOption": "Delete",
+                        "diskSizeGB": 127
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[parameters('virtualMachines_sbristol_vm_name')]",
+                    "adminUsername": "sawyer",
+                    "windowsConfiguration": {
+                        "provisionVMAgent": true,
+                        "enableAutomaticUpdates": false,
+                        "patchSettings": {
+                            "patchMode": "Manual",
+                            "assessmentMode": "ImageDefault",
+                            "enableHotpatching": false
+                        },
+                        "enableVMAgentPlatformUpdates": false
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true,
+                    "requireGuestProvisionSignal": true
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[parameters('networkInterfaces_sbristol_vm281_externalid')]",
+                            "properties": {
+                                "deleteOption": "Detach"
+                            }
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2022-11-01",
+            "name": "[concat(parameters('virtualMachines_sbristol_vm_name'), '/AzureNetworkWatcherExtension')]",
+            "location": "centralus",
             "dependsOn": [
-              "[resourceId('Microsoft.Web/Sites', variables('siteName'))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachines_sbristol_vm_name'))]"
             ],
             "properties": {
-              "repoUrl": "[variables('repoURL')]",
-              "branch": "[variables('branch')]",
-              "IsManualIntegration": true
+                "autoUpgradeMinorVersion": true,
+                "publisher": "Microsoft.Azure.NetworkWatcher",
+                "type": "NetworkWatcherAgentWindows",
+                "typeHandlerVersion": "1.4"
             }
-          }
-        ]
-      }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2022-11-01",
+            "name": "[concat(parameters('virtualMachines_sbristol_vm_name'), '/enablevmAccess')]",
+            "location": "centralus",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachines_sbristol_vm_name'))]"
+            ],
+            "properties": {
+                "autoUpgradeMinorVersion": true,
+                "publisher": "Microsoft.Compute",
+                "type": "VMAccessAgent",
+                "typeHandlerVersion": "2.0",
+                "settings": {
+                    "userName": "sawyer"
+                },
+                "protectedSettings": {}
+            }
+        }
     ]
-  }
+}
